@@ -4,6 +4,7 @@ const morgan = require('morgan'); // For request logging
 
 const jobsRoutes = require('./api/routes/jobs.routes');
 const applicationsRoutes = require('./api/routes/applications.routes');
+const candidateRoutes = require('./api/routes/candidate.Routes'); // <--- NEW: Import candidate routes
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded request bo
 // API Routes
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/applications', applicationsRoutes);
+app.use('/api/candidates', candidateRoutes); // <--- NEW: Use candidate routes
 
 // Basic Health Check Route
 app.get('/health', (req, res) => {
