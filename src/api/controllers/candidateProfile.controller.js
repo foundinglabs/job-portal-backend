@@ -1,4 +1,5 @@
 const CandidateProfileService = require('../../services/CandidateProfileService');
+const SavedJobService = require('../../services/SavedJobService'); // NEW: Import SavedJobService
 const { Storage } = require('@google-cloud/storage');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -15,18 +16,14 @@ const bucketName = process.env.GCS_BUCKET_NAME;
 const bucket = storage.bucket(bucketName);
 
 class CandidateProfileController {
-    /**
-     * Creates a new candidate profile.
-     * @param {object} req - Express request object.
-     * @param {object} res - Express response object.
-     */
+    // --- Candidate Profile Methods ---
+
     async createProfile(req, res) {
         try {
-            const userId = req.user.id; // Get user ID from authenticated token
+            const userId = req.user.id;
             const { full_name, email, phone, linkedin_profile_url } = req.body;
             let resumeFilePath = null;
 
-            // Handle resume upload if present
             if (req.file) {
                 const file = req.file;
                 const fileExtension = path.extname(file.originalname);
@@ -34,9 +31,7 @@ class CandidateProfileController {
                 const blob = bucket.file(fileName);
                 const blobStream = blob.createWriteStream({
                     resumable: false,
-                    metadata: {
-                        contentType: file.mimetype
-                    }
+                    metadata: { contentType: file.mimetype }
                 });
 
                 await new Promise((resolve, reject) => {
@@ -59,7 +54,7 @@ class CandidateProfileController {
                 email,
                 phone,
                 linkedin_profile_url,
-                resume_file_path: resumeFilePath // Store GCS path
+                resume_file_path: resumeFilePath
             };
 
             const newProfile = await CandidateProfileService.createProfile(profileData);
@@ -71,7 +66,6 @@ class CandidateProfileController {
 
         } catch (error) {
             console.error('Error creating candidate profile:', error);
-            // Handle the specific 409 Conflict error from the service
             if (error.statusCode === 409) {
                 return res.status(409).json({ message: error.message });
             }
@@ -79,7 +73,6 @@ class CandidateProfileController {
         }
     }
 
-    // You will add other methods like getProfile, updateProfile, getResume here
     async getProfile(req, res) {
         try {
             const userId = req.user.id;
@@ -101,7 +94,6 @@ class CandidateProfileController {
             const { full_name, email, phone, linkedin_profile_url } = req.body;
             let resumeFilePath = null;
 
-            // Handle resume upload if present
             if (req.file) {
                 const file = req.file;
                 const fileExtension = path.extname(file.originalname);
@@ -109,9 +101,7 @@ class CandidateProfileController {
                 const blob = bucket.file(fileName);
                 const blobStream = blob.createWriteStream({
                     resumable: false,
-                    metadata: {
-                        contentType: file.mimetype
-                    }
+                    metadata: { contentType: file.mimetype }
                 });
 
                 await new Promise((resolve, reject) => {
@@ -133,7 +123,7 @@ class CandidateProfileController {
                 email,
                 phone,
                 linkedin_profile_url,
-                resume_file_path: resumeFilePath // Update GCS path if new resume provided
+                resume_file_path: resumeFilePath
             };
 
             const updatedProfile = await CandidateProfileService.updateProfile(userId, updateData);
@@ -155,7 +145,7 @@ class CandidateProfileController {
 
     async getResume(req, res) {
         try {
-            const userId = req.user.id; // User requesting the resume
+            const userId = req.user.id;
             const { profile, resumeUrl } = await CandidateProfileService.getResumeByUserId(userId);
 
             if (!profile || !resumeUrl) {
@@ -167,6 +157,55 @@ class CandidateProfileController {
         } catch (error) {
             console.error('Error generating signed URL for candidate resume:', error);
             res.status(500).json({ message: error.message || 'Could not retrieve resume.' });
+        }
+    }
+
+    // --- Saved Jobs Methods (NEW) ---
+
+    async saveJob(req, res) {
+        try {
+            const userId = req.user.id;
+            const { jobId } = req.body; // Expecting jobId in the request body
+
+            if (!jobId) {
+                return res.status(400).json({ message: 'Job ID is required to save a job.' });
+            }
+
+            const savedJob = await SavedJobService.saveJob(userId, jobId);
+            res.status(201).json({ message: 'Job saved successfully!', savedJob });
+        } catch (error) {
+            console.error('Error saving job:', error);
+            if (error.statusCode === 409) { // Handle conflict if job is already saved
+                return res.status(409).json({ message: error.message });
+            }
+            res.status(500).json({ message: error.message || 'Could not save job.' });
+        }
+    }
+
+    async getSavedJobs(req, res) {
+        try {
+            const userId = req.user.id;
+            const savedJobs = await SavedJobService.getSavedJobsByUserId(userId);
+            res.status(200).json(savedJobs);
+        } catch (error) {
+            console.error('Error retrieving saved jobs:', error);
+            res.status(500).json({ message: error.message || 'Could not retrieve saved jobs.' });
+        }
+    }
+
+    async unsaveJob(req, res) {
+        try {
+            const userId = req.user.id;
+            const { jobId } = req.params; // Expecting jobId in URL params
+
+            const deleted = await SavedJobService.unsaveJob(userId, jobId);
+            if (!deleted) {
+                return res.status(404).json({ message: 'Saved job not found or already unsaved.' });
+            }
+            res.status(200).json({ message: 'Job unsaved successfully.' });
+        } catch (error) {
+            console.error('Error unsaving job:', error);
+            res.status(500).json({ message: error.message || 'Could not unsave job.' });
         }
     }
 }

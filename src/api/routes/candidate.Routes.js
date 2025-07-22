@@ -23,18 +23,15 @@ const upload = multer({
     }
 });
 
-// Route to create a new candidate profile
-// Requires candidate authentication and allows resume upload
+// Candidate Profile Routes
 router.post(
     '/profile',
-    authMiddleware, // Ensure user is authenticated
-    authorizeRoles(['candidate']), // Ensure user has 'candidate' role
-    upload.single('resume'), // 'resume' is the field name for the file
+    authMiddleware,
+    authorizeRoles(['candidate']),
+    upload.single('resume'),
     CandidateProfileController.createProfile
 );
 
-
-// Route to get candidate profile by logged-in user
 router.get(
     '/profile',
     authMiddleware,
@@ -42,27 +39,41 @@ router.get(
     CandidateProfileController.getProfile
 );
 
-// Route to update candidate profile by logged-in user
 router.put(
     '/profile',
     authMiddleware,
     authorizeRoles(['candidate']),
-    upload.single('resume'), // Allow updating resume
+    upload.single('resume'),
     CandidateProfileController.updateProfile
 );
 
-// Route to get candidate resume (signed URL)
 router.get(
     '/profile/resume',
     authMiddleware,
-    authorizeRoles(['candidate', 'recruiter', 'admin']), // Recruiters/Admins should also be able to view candidate resumes
+    authorizeRoles(['candidate', 'recruiter', 'admin']),
     CandidateProfileController.getResume
 );
 
-// You might also have routes for saved jobs here or in a separate file
-// router.post('/saved-jobs', authMiddleware, authorizeRoles(['candidate']), CandidateProfileController.saveJob);
-// router.get('/saved-jobs', authMiddleware, authorizeRoles(['candidate']), CandidateProfileController.getSavedJobs);
-// router.delete('/saved-jobs/:jobId', authMiddleware, authorizeRoles(['candidate']), CandidateProfileController.unsaveJob);
+// Saved Jobs Routes (NEW)
+router.post(
+    '/saved-jobs',
+    authMiddleware,
+    authorizeRoles(['candidate']),
+    CandidateProfileController.saveJob // Assuming controller handles this
+);
 
+router.get(
+    '/saved-jobs',
+    authMiddleware,
+    authorizeRoles(['candidate']),
+    CandidateProfileController.getSavedJobs // Assuming controller handles this
+);
+
+router.delete(
+    '/saved-jobs/:jobId',
+    authMiddleware,
+    authorizeRoles(['candidate']),
+    CandidateProfileController.unsaveJob // Assuming controller handles this
+);
 
 module.exports = router;
