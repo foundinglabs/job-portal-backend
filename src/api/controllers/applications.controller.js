@@ -1,12 +1,11 @@
 const ApplicationService = require('../../services/ApplicationService');
 const { validateApplication } = require('../validators/applicationValidator');
+const JobRepository = require('../../database/repositories/JobRepository'); // Added import
 
 class ApplicationsController {
     static async applyWithoutLogin(req, res, next) {
         try {
-            // Data from form fields
             const applicationData = req.body;
-            // File from multer
             const resumeFile = req.file;
 
             if (!resumeFile) {
@@ -29,9 +28,14 @@ class ApplicationsController {
     static async getApplicationsForJob(req, res, next) {
         try {
             const { jobId } = req.params;
-            // Ensure this is only accessible by recruiters authorized for this job's company
-            // `req.user.id` and `req.user.role` are available from authMiddleware
-            // Add authorization check: e.g., recruiter's company_id must match job's company_id
+            const recruiterCompanyId = req.user.company_id; // From authMiddleware
+
+            // Authorization check: Ensure recruiter can only see applications for their company's jobs
+            const job = await JobRepository.findById(jobId);
+            if (!job || job.company_id !== recruiterCompanyId) {
+                return res.status(403).json({ message: 'Access denied. You can only view applications for your company\'s jobs.' });
+            }
+
             const applications = await ApplicationService.getApplicationsForJob(jobId);
             res.json(applications);
         } catch (error) {
@@ -43,8 +47,14 @@ class ApplicationsController {
         try {
             const { id } = req.params;
             const { status, internal_notes, internal_tags } = req.body;
-            // Ensure this is only accessible by authorized recruiters
-            // Add authorization check
+            const recruiterCompanyId = req.user.company_id; // From authMiddleware
+
+            // Authorization check: Ensure recruiter can only update applications for their company's jobs
+            const applicationCompanyId = await ApplicationService.getApplicationJobCompanyId(id); // Get company_id via service
+            if (!applicationCompanyId || applicationCompanyId !== recruiterCompanyId) {
+                return res.status(403).json({ message: 'Access denied. You can only update applications for your company\'s jobs.' });
+            }
+
             const updatedApplication = await ApplicationService.updateApplicationStatus(id, status, internal_notes, internal_tags);
             if (!updatedApplication) {
                 return res.status(404).json({ message: 'Application not found.' });
@@ -58,9 +68,15 @@ class ApplicationsController {
     static async getResume(req, res, next) {
         try {
             const { applicationId } = req.params;
-            // Ensure this is only accessible by authorized recruiters
-            // `req.user.id` (recruiterId) from authMiddleware
-            const signedUrl = await ApplicationService.getResumeSignedUrl(applicationId, req.user.id);
+            const recruiterCompanyId = req.user.company_id; // From authMiddleware
+
+            // Authorization check: Ensure recruiter can only view resumes for applications for their company's jobs
+            const applicationCompanyId = await ApplicationService.getApplicationJobCompanyId(applicationId); // Get company_id via service
+            if (!applicationCompanyId || applicationCompanyId !== recruiterCompanyId) {
+                return res.status(403).json({ message: 'Access denied. You can only view resumes for your company\'s jobs.' });
+            }
+
+            const signedUrl = await ApplicationService.getResumeSignedUrl(applicationId); // Removed recruiterId param
             res.json({ url: signedUrl });
         } catch (error) {
             next(error);

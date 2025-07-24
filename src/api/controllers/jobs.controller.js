@@ -7,11 +7,11 @@ class JobsController {
      */
     static async getAllJobs(req, res, next) {
         try {
-            const filters = req.query; // role, location, type, experience
+            const filters = req.query;
             const jobs = await JobService.getAllJobs(filters);
             res.json(jobs);
         } catch (error) {
-            next(error); // Pass error to Express error handling middleware
+            next(error);
         }
     }
 
@@ -39,23 +39,34 @@ class JobsController {
      */
     static async createJob(req, res, next) {
         try {
-            // req.user.id is set by authMiddleware from the JWT payload (Supabase user ID)
             const recruiterId = req.user.id;
+            const companyId = req.user.company_id; // <-- **Crucial**: Get company_id from authenticated user
 
-            // In a real application, company_id should ideally be derived from the recruiterId
-            // (e.g., by looking up the recruiter's company_id in the 'recruiters' table)
-            // For this MVP, we'll allow it in the body for simplicity, but a more secure
-            // approach would be to fetch it based on `recruiterId`.
-            const jobData = { ...req.body, posted_by_recruiter_id: recruiterId };
+            if (!companyId) {
+                // This means the user is authenticated but not associated with a company in `recruiters` table.
+                return res.status(403).json({ message: "You must be associated with a company to post a job. Please ensure your recruiter profile is complete." });
+            }
+            // `authorizeRoles` middleware (used in routes) should handle basic role check.
+            // This explicit check adds redundancy, which is fine for security.
+            if (req.user.role !== 'recruiter' && req.user.role !== 'admin') {
+                 return res.status(403).json({ message: "Access denied. Only recruiters can post jobs." });
+            }
 
-            const newJob = await JobService.createJob(jobData, recruiterId);
+            // The jobData from the request body should NOT contain company_id, we override/set it.
+            const jobData = {
+                ...req.body,
+                company_id: companyId, // Override/set company_id from authenticated user's profile
+                posted_by_recruiter_id: recruiterId
+            };
+
+            const newJob = await JobService.createJob(jobData); // Call service with complete jobData
             res.status(201).json(newJob);
         } catch (error) {
-            // Handle specific errors from service, if any (e.g., missing company_id)
-            if (error.message.includes("Company ID is required")) {
+            // Handle specific errors from service, if any (e.g., missing fields)
+            if (error.message.includes("Missing required job fields")) {
                 return res.status(400).json({ message: error.message });
             }
-            next(error);
+            next(error); // Pass other errors to general error handler
         }
     }
 
@@ -67,26 +78,26 @@ class JobsController {
     static async updateJob(req, res, next) {
         try {
             const { id } = req.params; // Job ID
-            const userId = req.user.id; // User ID from authenticated token (recruiter ID)
-            const updateData = req.body; // Data to update
+            const recruiterCompanyId = req.user.company_id; // Company ID from authenticated recruiter
 
-            const updatedJob = await JobService.updateJob(id, updateData, userId);
+            const job = await JobService.getJobById(id);
+            if (!job) {
+                return res.status(404).json({ message: 'Job not found.' });
+            }
+            // Authorization: Ensure the recruiter can only update jobs belonging to their company
+            if (job.company_id !== recruiterCompanyId) {
+                return res.status(403).json({ message: "You are not authorized to update this job. It does not belong to your company." });
+            }
 
-            // If updateJob returns null, it means job was not found (after auth check)
+            const updatedJob = await JobService.updateJob(id, req.body);
+
             if (!updatedJob) {
-                return res.status(404).json({ message: 'Job not found or could not be updated.' });
+                return res.status(404).json({ message: 'Job not found or could not be updated.' }); // Should be caught by job not found above
             }
 
             res.json(updatedJob);
         } catch (error) {
-            // Handle specific errors from service layer
-            if (error.message.includes('Job not found')) {
-                return res.status(404).json({ message: error.message });
-            }
-            if (error.message.includes('Unauthorized')) {
-                return res.status(403).json({ message: error.message });
-            }
-            next(error); // Pass other errors to general error handler
+            next(error);
         }
     }
 
@@ -98,24 +109,25 @@ class JobsController {
     static async deleteJob(req, res, next) {
         try {
             const { id } = req.params; // Job ID
-            const userId = req.user.id; // User ID from authenticated token (recruiter ID)
+            const recruiterCompanyId = req.user.company_id; // Company ID from authenticated recruiter
 
-            const success = await JobService.deleteJob(id, userId);
-
-            if (!success) {
-                // If soft delete failed (e.g., job not found or already inactive, but service already throws for 'not found')
-                return res.status(404).json({ message: 'Job not found or could not be deleted.' });
+            const job = await JobService.getJobById(id);
+            if (!job) {
+                return res.status(404).json({ message: 'Job not found.' });
+            }
+            // Authorization: Ensure the recruiter can only delete jobs belonging to their company
+            if (job.company_id !== recruiterCompanyId) {
+                return res.status(403).json({ message: "You are not authorized to delete this job. It does not belong to your company." });
             }
 
-            res.status(204).send(); // 204 No Content for successful deletion
+            const deletedJob = await JobService.deleteJob(id); // Calls softDelete in repository
+
+            if (!deletedJob) {
+                return res.status(404).json({ message: 'Job not found or could not be deleted.' }); // Should be caught by job not found above
+            }
+
+            res.status(200).json({ message: 'Job soft-deleted successfully.', job: deletedJob }); // Changed to 200 with content
         } catch (error) {
-            // Handle specific errors from service layer
-            if (error.message.includes('Job not found') || error.message.includes('already inactive')) {
-                return res.status(404).json({ message: error.message });
-            }
-            if (error.message.includes('Unauthorized')) {
-                return res.status(403).json({ message: error.message });
-            }
             next(error);
         }
     }

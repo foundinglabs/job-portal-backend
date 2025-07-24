@@ -1,23 +1,25 @@
 const express = require('express');
-const cors = require('cors'); // If your frontend is on a different domain
-const morgan = require('morgan'); // For request logging
+const cors = require('cors');
+const morgan = require('morgan');
 
+const authRoutes = require('./api/routes/auth.routes'); // <-- NEW IMPORT
 const jobsRoutes = require('./api/routes/jobs.routes');
 const applicationsRoutes = require('./api/routes/applications.routes');
-const candidateRoutes = require('./api/routes/candidate.Routes'); // <--- NEW: Import candidate routes
+// const candidateRoutes = require('./api/routes/candidate.Routes'); // Removed as per discussion
 
 const app = express();
 
 // Middleware
-app.use(cors()); // Configure CORS as needed for production
-app.use(morgan('dev')); // HTTP request logger
-app.use(express.json()); // Parse JSON request bodies
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded request bodies
+app.use(cors());
+app.use(morgan('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // API Routes
+app.use('/api/auth', authRoutes); // <-- NEW: Use auth routes
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/applications', applicationsRoutes);
-app.use('/api/candidates', candidateRoutes); // <--- NEW: Use candidate routes
+// app.use('/api/candidates', candidateRoutes); // Removed
 
 // Basic Health Check Route
 app.get('/health', (req, res) => {
