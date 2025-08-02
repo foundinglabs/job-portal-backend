@@ -2,24 +2,29 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 
-const authRoutes = require('./api/routes/auth.routes'); // <-- NEW IMPORT
+const authRoutes = require('./api/routes/auth.routes'); 
 const jobsRoutes = require('./api/routes/jobs.routes');
 const applicationsRoutes = require('./api/routes/applications.routes');
-// const candidateRoutes = require('./api/routes/candidate.Routes'); // Removed as per discussion
+const candidateRoutes = require('./api/routes/candidateRoutes'); // Re-enabling the candidate routes
 
 const app = express();
 
 // Middleware
-app.use(cors());
+// Configure CORS to explicitly allow your frontend's domain(s)
+app.use(cors({
+    origin: ['http://localhost:5173', 'https://job-portal-backend-kiot.onrender.com'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // API Routes
-app.use('/api/auth', authRoutes); // <-- NEW: Use auth routes
+app.use('/api/auth', authRoutes); 
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/applications', applicationsRoutes);
-// app.use('/api/candidates', candidateRoutes); // Removed
+app.use('/api/candidates', candidateRoutes); // Re-enabling the candidate routes
 
 // Basic Health Check Route
 app.get('/health', (req, res) => {
