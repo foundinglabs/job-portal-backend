@@ -5,7 +5,7 @@ const morgan = require('morgan');
 const authRoutes = require('./api/routes/auth.routes'); 
 const jobsRoutes = require('./api/routes/jobs.routes');
 const applicationsRoutes = require('./api/routes/applications.routes');
-const candidateRoutes = require('./api/routes/candidateRoutes'); // Re-enabling the candidate routes
+// const candidateRoutes = require('./api/routes/candidateRoutes'); // Re-enabling the candidate routes
 
 const app = express();
 
@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes); 
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/applications', applicationsRoutes);
-app.use('/api/candidates', candidateRoutes); // Re-enabling the candidate routes
+// app.use('/api/candidates', candidateRoutes); // Re-enabling the candidate routes
 
 // Basic Health Check Route
 app.get('/health', (req, res) => {
