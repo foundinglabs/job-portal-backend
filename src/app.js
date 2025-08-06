@@ -12,7 +12,7 @@ const app = express();
 // Middleware
 // Configure CORS to explicitly allow your frontend's domain(s)
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://job-portal-frontend-git-dev-ghadagerohan07-gmailcoms-projects.vercel.app/', 'https://job-portal-backend-kiot.onrender.com'],
+    origin: ['http://localhost:5173', 'https://job-portal-frontend-nu-three.vercel.app/', 'https://job-portal-backend-kiot.onrender.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));

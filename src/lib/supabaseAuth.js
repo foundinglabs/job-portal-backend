@@ -1,12 +1,13 @@
 // src/lib/supabaseAuth.js
 const { createClient } = require('@supabase/supabase-js');
-const config = require('../config'); // Correctly import config from its dedicated file
-const jwt = require('jsonwebtoken');
+const config = require('../config');
+const jwt = require('jsonwebtoken'); // Needed for verifySupabaseToken
 
 // Initialize Supabase client for backend with Service Role Key
+// This client is primarily used for general operations and to get the admin client.
 const supabase = createClient(config.supabase.url, config.supabase.serviceRoleKey, {
     auth: {
-        persistSession: false
+        persistSession: false // No session persistence on backend
     }
 });
 
@@ -29,8 +30,10 @@ async function verifySupabaseToken(token) {
     }
 }
 
-// Correctly export the Supabase client and the verify function
+// Correctly export the Supabase client's admin object for admin-level operations
+// This grants access to methods like auth.admin.updateUserById
 module.exports = {
     verifySupabaseToken,
-    supabaseAdminClient: supabase // Export the initialized client as supabaseAdminClient
+    // CHANGED: Export supabase.auth.admin to access admin functions directly
+    supabaseAdminClient: supabase.auth.admin
 };
