@@ -14,4 +14,7 @@ router.post('/', authMiddleware, authorizeRoles(['recruiter', 'admin']), JobsCon
 router.put('/:id', authMiddleware, authorizeRoles(['recruiter', 'admin']), JobsController.updateJob);
 router.delete('/:id', authMiddleware, authorizeRoles(['recruiter', 'admin']), JobsController.deleteJob);
 
+// NEW: Dedicated Recruiter Dashboard Endpoint
+router.get('/recruiter/dashboard', authMiddleware, authorizeRoles(['recruiter', 'admin']), JobsController.getRecruiterDashboardJobs);
+
 module.exports = router;

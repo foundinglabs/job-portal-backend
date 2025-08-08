@@ -35,6 +35,22 @@ class JobRepository {
         return rows.map(row => new Job(row));
     }
 
+     /**
+     * Finds all active jobs for a specific company ID.
+     * @param {string} companyId - The UUID of the company.
+     * @returns {Promise<Job[]>} An array of Job objects for the given company.
+     */
+    static async findByCompanyId(companyId) {
+        try {
+            const { rows } = await query('SELECT * FROM jobs WHERE company_id = $1 AND is_active = TRUE ORDER BY created_at DESC', [companyId]);
+            return rows.map(row => new Job(row));
+        } catch (error) {
+            console.error('Error finding jobs by company ID:', error);
+            throw new Error('Could not retrieve jobs for this company.');
+        }
+    }
+    
+
     /**
      * Finds an active job by its ID.
      * @param {string} id - The ID of the job.
