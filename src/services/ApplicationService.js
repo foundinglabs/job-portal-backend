@@ -1,6 +1,6 @@
 const ApplicationRepository = require('../database/repositories/ApplicationRepository');
 const JobRepository = require('../database/repositories/JobRepository');
-const { uploadFile, getSignedUrl } = require('../lib/googleCloudStorage'); // <-- CRITICAL: Import from lib
+const { uploadFile, getSignedUrl } = require('../lib/googleCloudStorage');
 const ResumeParsingService = require('./ResumeParsingService');
 const MatchCalculationService = require('./MatchCalculationService');
 
@@ -16,12 +16,10 @@ class ApplicationService {
         let resumeFilePath = null;
 
         try {
-            // Use the utility function from lib/googleCloudStorage.js
             const resumeFileName = `${Date.now()}-${resumeFile.originalname}`;
             const destinationPath = `public_applications/${applicationData.job_id}/${resumeFileName}`;
             resumeFilePath = await uploadFile(resumeFile.buffer, destinationPath, resumeFile.mimetype);
 
-            // Prepare application data for repository
             const newApplicationData = {
                 ...applicationData,
                 resume_file_path: resumeFilePath,
@@ -30,7 +28,6 @@ class ApplicationService {
 
             const newApplication = await ApplicationRepository.create(newApplicationData);
 
-            // Asynchronously process resume for parsing and match calculation
             this.processApplicationAsync(newApplication.id, newApplication.resume_file_path, newApplication.job_id)
                 .catch(err => console.error(`Error processing application ${newApplication.id}:`, err));
 
@@ -76,7 +73,11 @@ class ApplicationService {
      * @returns {Promise<Array<object>>} An array of application objects.
      */
     static async getApplicationsForJob(jobId) {
-        return ApplicationRepository.findByJobId(jobId);
+        const applications = await ApplicationRepository.findByJobId(jobId);
+        return applications.map(app => ({
+            ...app,
+            match_percentage: app.match_percentage !== null ? Number(app.match_percentage) : null
+        }));
     }
 
     /**
@@ -93,7 +94,11 @@ class ApplicationService {
             internal_notes: internalNotes,
             internal_tags: internalTags
         };
-        return ApplicationRepository.update(applicationId, updateData);
+        const updatedApp = await ApplicationRepository.update(applicationId, updateData);
+        return {
+            ...updatedApp,
+            match_percentage: updatedApp.match_percentage !== null ? Number(updatedApp.match_percentage) : null
+        };
     }
 
     /**
@@ -112,15 +117,23 @@ class ApplicationService {
      * @returns {Promise<string>} The signed URL.
      * @throws {Error} If application not found or resume path is missing.
      */
-    static async getResumeSignedUrl(applicationId) {
+    static async getResumeSignedUrl(applicationId, user) {
         const application = await ApplicationRepository.findById(applicationId);
 
         if (!application || !application.resume_file_path) {
             throw new Error('Resume not found for this application.');
         }
 
-        // Use the utility function from lib/googleCloudStorage.js
-        return getSignedUrl(application.resume_file_path);
+        // Authorization check: Ensure the recruiter can only view resumes for their company's jobs
+        const job = await JobRepository.findById(application.job_id);
+        if (!job || job.company_id !== user.company_id) {
+            const error = new Error('Unauthorized: You are not authorized to view this resume.');
+            error.statusCode = 403;
+            throw error;
+        }
+
+        const filePath = application.resume_file_path.replace(`gs://${process.env.GCS_BUCKET_NAME}/`, '');
+        return getSignedUrl(filePath);
     }
 }
 
