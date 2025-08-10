@@ -16,7 +16,8 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://job-portal-frontend-nu-three.vercel.app",
+      "https://job-portal-frontend-iota-eight.vercel.app/",
+      
       "https://job-portal-backend-kiot.onrender.com",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
