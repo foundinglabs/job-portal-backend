@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use("/api/auth", authRoutes)
 app.use("/api/jobs", jobsRoutes)
 app.use("/api/applications", applicationsRoutes)
-app.use('/api/candidates', candidateRoutes);
+// app.use('/api/candidates', candidateRoutes);
 
 // Basic Health Check Route
 app.get("/health", (req, res) => {
