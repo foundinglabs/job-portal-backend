@@ -11,13 +11,13 @@ const applicationsRoutes = require("./api/routes/applications.routes")
 const app = express()
 
 // Middleware
-// Configure CORS to explicitly allow your frontend's domain(s)
+// CRITICAL: Configure CORS to explicitly allow your Vercel frontend's domain
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
+      // Add your Vercel frontend URL here
       "https://job-portal-frontend-iota-eight.vercel.app",
-      
       "https://job-portal-backend-kiot.onrender.com",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use("/api/auth", authRoutes)
 app.use("/api/jobs", jobsRoutes)
 app.use("/api/applications", applicationsRoutes)
-// app.use('/api/candidates', candidateRoutes); // Re-enabling the candidate routes
+app.use('/api/candidates', candidateRoutes);
 
 // Basic Health Check Route
 app.get("/health", (req, res) => {
