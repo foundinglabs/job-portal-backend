@@ -76,12 +76,19 @@ router.delete(
     CandidateProfileController.unsaveJob
 );
 
-// NEW: Check if a job is saved by the logged-in candidate
 router.get(
-    '/saved-jobs/:jobId/status',
+    '/saved-jobs/check/:jobId',
     authMiddleware,
     authorizeRoles(['candidate']),
     CandidateProfileController.checkSavedStatus
+);
+
+// Corrected route for applied jobs
+router.get(
+    '/applied-jobs',
+    authMiddleware,
+    authorizeRoles(['candidate']),
+    CandidateProfileController.getAppliedJobs // This method is now correctly defined
 );
 
 module.exports = router;

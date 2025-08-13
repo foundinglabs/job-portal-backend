@@ -137,6 +137,49 @@ class ApplicationRepository {
             throw new Error('Could not retrieve application company ID.');
         }
     }
+    /**
+     * Finds all jobs applied for by a specific user with full job details.
+     * @param {string} userEmail - The email of the candidate user.
+     * @returns {Promise<Array<object>>} An array of objects containing applied job and full job details.
+     */
+    static async findByUserIdWithJobDetails(userEmail) {
+        try {
+            const { rows } = await query(
+                `SELECT
+                    pa.job_id,
+                    pa.applied_at,
+                    pa.application_status,
+                    j.*,
+                    c.name as company_name -- CORRECTED: Get company name from 'companies' table
+                FROM
+                    public_applications pa
+                JOIN
+                    jobs j ON pa.job_id = j.id
+                JOIN
+                    companies c ON j.company_id = c.id -- CORRECTED: Join with 'companies' table
+                WHERE
+                    pa.applicant_email = $1
+                ORDER BY
+                    pa.applied_at DESC`,
+                [userEmail]
+            );
+
+            return rows.map(row => ({
+                job_id: row.job_id,
+                applied_at: row.applied_at,
+                application_status: row.application_status,
+                job: {
+                    id: row.id,
+                    title: row.title,
+                    company_name: row.company_name,
+                    // Add other job fields here as needed
+                }
+            }));
+        } catch (error) {
+            console.error('Error finding applied jobs by user ID with job details:', error);
+            throw new Error('Could not retrieve applied jobs with details.');
+        }
+    }
 }
 
 module.exports = ApplicationRepository;

@@ -1,16 +1,10 @@
 const { query } = require('../connection');
-const SavedJob = require('../models/SavedJob'); // Assuming you have this model
+const SavedJob = require('../models/SavedJob');
+const Job = require('../models/Job');
 
 class SavedJobRepository {
-    /**
-     * Creates a new saved job entry.
-     * @param {string} userId - The ID of the candidate user.
-     * @param {string} jobId - The ID of the job to save.
-     * @returns {Promise<SavedJob>} The newly created SavedJob object.
-     */
     static async create(userId, jobId) {
         try {
-            // CORRECTED: Changed 'saved_at' to 'created_at' to match your SQL schema
             const { rows } = await query(
                 `INSERT INTO saved_jobs (user_id, job_id, created_at)
                  VALUES ($1, $2, NOW()) RETURNING *`,
@@ -19,7 +13,7 @@ class SavedJobRepository {
             return new SavedJob(rows[0]);
         } catch (error) {
             console.error('Error creating saved job:', error);
-            if (error.code === '23505') { // PostgreSQL unique_violation error code
+            if (error.code === '23505') {
                 const conflictError = new Error('Job is already saved by this candidate.');
                 conflictError.statusCode = 409;
                 throw conflictError;
@@ -28,12 +22,40 @@ class SavedJobRepository {
         }
     }
 
-    /**
-     * Finds a saved job entry by user ID and job ID.
-     * @param {string} userId - The ID of the candidate user.
-     * @param {string} jobId - The ID of the job.
-     * @returns {Promise<SavedJob|null>} The SavedJob object if found, otherwise null.
-     */
+    static async findByUserIdWithJobDetails(userId) {
+        try {
+            const { rows } = await query(
+                `SELECT
+                    sj.user_id,
+                    sj.job_id,
+                    sj.created_at as saved_at,
+                    j.*
+                FROM
+                    saved_jobs sj
+                JOIN
+                    jobs j ON sj.job_id = j.id
+                WHERE
+                    sj.user_id = $1
+                ORDER BY
+                    sj.created_at DESC`,
+                [userId]
+            );
+            return rows.map(row => ({
+                job_id: row.job_id,
+                user_id: row.user_id,
+                created_at: row.saved_at,
+                job: {
+                    id: row.id,
+                    title: row.title,
+                    company_name: row.company_name,
+                }
+            }));
+        } catch (error) {
+            console.error('Error finding saved jobs by user ID with job details:', error);
+            throw new Error('Could not retrieve saved jobs with details.');
+        }
+    }
+
     static async findByUserIdAndJobId(userId, jobId) {
         try {
             const { rows } = await query('SELECT * FROM saved_jobs WHERE user_id = $1 AND job_id = $2', [userId, jobId]);
@@ -44,14 +66,8 @@ class SavedJobRepository {
         }
     }
 
-    /**
-     * Finds all jobs saved by a specific user.
-     * @param {string} userId - The ID of the candidate user.
-     * @returns {Promise<SavedJob[]>} An array of SavedJob objects.
-     */
     static async findByUserId(userId) {
         try {
-            // This query could be enhanced to join with the 'jobs' table to get full job details
             const { rows } = await query('SELECT * FROM saved_jobs WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
             return rows.map(row => new SavedJob(row));
         } catch (error) {
@@ -60,12 +76,6 @@ class SavedJobRepository {
         }
     }
 
-    /**
-     * Deletes a saved job entry.
-     * @param {string} userId - The ID of the candidate user.
-     * @param {string} jobId - The ID of the job to delete.
-     * @returns {Promise<boolean>} True if the entry was deleted, false otherwise.
-     */
     static async delete(userId, jobId) {
         try {
             const { rowCount } = await query('DELETE FROM saved_jobs WHERE user_id = $1 AND job_id = $2', [userId, jobId]);

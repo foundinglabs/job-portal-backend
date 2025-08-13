@@ -3,6 +3,7 @@ const SavedJobService = require('../../services/SavedJobService');
 const { Storage } = require('@google-cloud/storage');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const ApplicationRepository = require('../../database/repositories/ApplicationRepository');
 
 // Initialize Google Cloud Storage
 const storage = new Storage({
@@ -16,7 +17,28 @@ const bucketName = process.env.GCS_BUCKET_NAME;
 const bucket = storage.bucket(bucketName);
 
 class CandidateProfileController {
-    // --- Candidate Profile Methods ---
+    
+     /**
+     * Get all applied jobs for the authenticated user.
+     */
+    static async getAppliedJobs(req, res) {
+        try {
+            const userEmail = req.user.email;
+            const appliedJobs = await ApplicationRepository.findByUserIdWithJobDetails(userEmail);
+
+            res.status(200).json({
+                success: true,
+                data: appliedJobs
+            });
+        } catch (error) {
+            console.error('Error fetching applied jobs:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch applied jobs',
+                error: error.message
+            });
+        }
+    }
 
     static async createProfile(req, res, next) {
         try {

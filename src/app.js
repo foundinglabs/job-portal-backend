@@ -1,4 +1,3 @@
-console.log(require("@supabase/supabase-js/package.json").version)
 const express = require("express")
 const cors = require("cors")
 const morgan = require("morgan")
@@ -6,13 +5,12 @@ const morgan = require("morgan")
 const authRoutes = require("./api/routes/auth.routes")
 const jobsRoutes = require("./api/routes/jobs.routes")
 const applicationsRoutes = require("./api/routes/applications.routes")
-const savedJobsRoutes = require("./api/routes/savedJobs.routes");
-// const candidateRoutes = require('./api/routes/candidateRoutes'); // Re-enabling the candidate routes
+const savedJobsRoutes = require("./api/routes/savedJobs.routes")
+const candidateRoutes = require('./api/routes/candidate.Routes'); // Correctly import the candidate routes
 
 const app = express()
 
 // Middleware
-// CRITICAL: Configure CORS to explicitly allow your Vercel frontend's domain
 app.use(
   cors({
     origin: [
@@ -33,15 +31,12 @@ app.use("/api/auth", authRoutes)
 app.use("/api/jobs", jobsRoutes)
 app.use("/api/applications", applicationsRoutes)
 app.use("/api/saved-jobs", savedJobsRoutes)
-// app.use("/api/candidates/saved-jobs", savedJobsRoutes)
-// app.use('/api/candidates', candidateRoutes);
+app.use("/api/candidate", candidateRoutes) // Correctly mount the candidate routes
 
-// Basic Health Check Route
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Backend is running!" })
 })
 
-// Global Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error(err.stack)
   res.status(err.statusCode || 500).json({
