@@ -10,6 +10,7 @@ class SavedJobRepository {
      */
     static async create(userId, jobId) {
         try {
+            // CORRECTED: Changed 'saved_at' to 'created_at' to match your SQL schema
             const { rows } = await query(
                 `INSERT INTO saved_jobs (user_id, job_id, created_at)
                  VALUES ($1, $2, NOW()) RETURNING *`,
@@ -18,7 +19,6 @@ class SavedJobRepository {
             return new SavedJob(rows[0]);
         } catch (error) {
             console.error('Error creating saved job:', error);
-            // Check for unique constraint violation if job is already saved
             if (error.code === '23505') { // PostgreSQL unique_violation error code
                 const conflictError = new Error('Job is already saved by this candidate.');
                 conflictError.statusCode = 409;

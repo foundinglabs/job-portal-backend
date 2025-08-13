@@ -1,5 +1,5 @@
 const CandidateProfileService = require('../../services/CandidateProfileService');
-const SavedJobService = require('../../services/SavedJobService'); // NEW: Import SavedJobService
+const SavedJobService = require('../../services/SavedJobService');
 const { Storage } = require('@google-cloud/storage');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -18,7 +18,7 @@ const bucket = storage.bucket(bucketName);
 class CandidateProfileController {
     // --- Candidate Profile Methods ---
 
-    async createProfile(req, res) {
+    static async createProfile(req, res, next) {
         try {
             const userId = req.user.id;
             const { full_name, email, phone, linkedin_profile_url } = req.body;
@@ -73,7 +73,7 @@ class CandidateProfileController {
         }
     }
 
-    async getProfile(req, res) {
+    static async getProfile(req, res, next) {
         try {
             const userId = req.user.id;
             const profile = await CandidateProfileService.getProfileByUserId(userId);
@@ -88,7 +88,7 @@ class CandidateProfileController {
         }
     }
 
-    async updateProfile(req, res) {
+    static async updateProfile(req, res, next) {
         try {
             const userId = req.user.id;
             const { full_name, email, phone, linkedin_profile_url } = req.body;
@@ -143,7 +143,7 @@ class CandidateProfileController {
         }
     }
 
-    async getResume(req, res) {
+    static async getResume(req, res, next) {
         try {
             const userId = req.user.id;
             const { profile, resumeUrl } = await CandidateProfileService.getResumeByUserId(userId);
@@ -160,54 +160,59 @@ class CandidateProfileController {
         }
     }
 
-    // --- Saved Jobs Methods (NEW) ---
+    // --- Saved Jobs Methods ---
 
-    async saveJob(req, res) {
+    static async saveJob(req, res, next) {
         try {
             const userId = req.user.id;
-            const { jobId } = req.body; // Expecting jobId in the request body
-
+            const { jobId } = req.body;
             if (!jobId) {
                 return res.status(400).json({ message: 'Job ID is required to save a job.' });
             }
-
             const savedJob = await SavedJobService.saveJob(userId, jobId);
             res.status(201).json({ message: 'Job saved successfully!', savedJob });
         } catch (error) {
-            console.error('Error saving job:', error);
-            if (error.statusCode === 409) { // Handle conflict if job is already saved
+            if (error.statusCode === 409) {
                 return res.status(409).json({ message: error.message });
             }
-            res.status(500).json({ message: error.message || 'Could not save job.' });
+            next(error);
         }
     }
 
-    async getSavedJobs(req, res) {
+    static async getSavedJobs(req, res, next) {
         try {
             const userId = req.user.id;
             const savedJobs = await SavedJobService.getSavedJobsByUserId(userId);
             res.status(200).json(savedJobs);
         } catch (error) {
-            console.error('Error retrieving saved jobs:', error);
-            res.status(500).json({ message: error.message || 'Could not retrieve saved jobs.' });
+            next(error);
         }
     }
 
-    async unsaveJob(req, res) {
+    static async unsaveJob(req, res, next) {
         try {
             const userId = req.user.id;
-            const { jobId } = req.params; // Expecting jobId in URL params
-
+            const { jobId } = req.params;
             const deleted = await SavedJobService.unsaveJob(userId, jobId);
             if (!deleted) {
                 return res.status(404).json({ message: 'Saved job not found or already unsaved.' });
             }
             res.status(200).json({ message: 'Job unsaved successfully.' });
         } catch (error) {
-            console.error('Error unsaving job:', error);
-            res.status(500).json({ message: error.message || 'Could not unsave job.' });
+            next(error);
+        }
+    }
+
+    static async checkSavedStatus(req, res, next) {
+        try {
+            const { jobId } = req.params;
+            const userId = req.user.id;
+            const isSaved = await SavedJobService.isJobSaved(userId, jobId);
+            res.status(200).json({ isSaved });
+        } catch (error) {
+            next(error);
         }
     }
 }
 
-module.exports = new CandidateProfileController();
+module.exports = CandidateProfileController;

@@ -48,6 +48,11 @@ class SavedJobService {
     static async unsaveJob(userId, jobId) {
         return SavedJobRepository.delete(userId, jobId);
     }
+    
+    static async isJobSaved(userId, jobId) {
+        const savedJob = await SavedJobRepository.findByUserIdAndJobId(userId, jobId);
+        return Boolean(savedJob);
+    }
 }
 
 module.exports = SavedJobService;

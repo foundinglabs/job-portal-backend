@@ -6,6 +6,7 @@ const morgan = require("morgan")
 const authRoutes = require("./api/routes/auth.routes")
 const jobsRoutes = require("./api/routes/jobs.routes")
 const applicationsRoutes = require("./api/routes/applications.routes")
+const savedJobsRoutes = require("./api/routes/savedJobs.routes");
 // const candidateRoutes = require('./api/routes/candidateRoutes'); // Re-enabling the candidate routes
 
 const app = express()
@@ -16,7 +17,6 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      // Add your Vercel frontend URL here
       "https://job-portal-frontend-iota-eight.vercel.app",
       "https://job-portal-backend-kiot.onrender.com",
     ],
@@ -32,6 +32,8 @@ app.use(express.urlencoded({ extended: true }))
 app.use("/api/auth", authRoutes)
 app.use("/api/jobs", jobsRoutes)
 app.use("/api/applications", applicationsRoutes)
+app.use("/api/saved-jobs", savedJobsRoutes)
+// app.use("/api/candidates/saved-jobs", savedJobsRoutes)
 // app.use('/api/candidates', candidateRoutes);
 
 // Basic Health Check Route

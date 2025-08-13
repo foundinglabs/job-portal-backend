@@ -1,9 +1,9 @@
 class SavedJob {
-    constructor({ id, user_id, job_id, created_at }) {
+    constructor({ id, user_id, job_id, saved_at }) {
         this.id = id;
         this.user_id = user_id;
         this.job_id = job_id;
-        this.created_at = created_at;
+        this.saved_at = saved_at;
     }
 }
 

@@ -6,10 +6,10 @@ const multer = require('multer');
 const path = require('path');
 
 // Configure Multer for file uploads
-const storage = multer.memoryStorage(); // Store files in memory as buffers
+const storage = multer.memoryStorage();
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowedTypes = /pdf|doc|docx/;
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -54,26 +54,34 @@ router.get(
     CandidateProfileController.getResume
 );
 
-// Saved Jobs Routes (NEW)
+// Saved Jobs Routes
 router.post(
     '/saved-jobs',
     authMiddleware,
     authorizeRoles(['candidate']),
-    CandidateProfileController.saveJob // Assuming controller handles this
+    CandidateProfileController.saveJob
 );
 
 router.get(
     '/saved-jobs',
     authMiddleware,
     authorizeRoles(['candidate']),
-    CandidateProfileController.getSavedJobs // Assuming controller handles this
+    CandidateProfileController.getSavedJobs
 );
 
 router.delete(
     '/saved-jobs/:jobId',
     authMiddleware,
     authorizeRoles(['candidate']),
-    CandidateProfileController.unsaveJob // Assuming controller handles this
+    CandidateProfileController.unsaveJob
+);
+
+// NEW: Check if a job is saved by the logged-in candidate
+router.get(
+    '/saved-jobs/:jobId/status',
+    authMiddleware,
+    authorizeRoles(['candidate']),
+    CandidateProfileController.checkSavedStatus
 );
 
 module.exports = router;
