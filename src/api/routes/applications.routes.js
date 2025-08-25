@@ -19,7 +19,8 @@ const blockRecruiters = (req, res, next) => {
 // Candidate applying without login
 // The authMiddleware is optional here, as applyWithoutLogin is designed for unauthenticated users.
 // However, if an authenticated user (like a recruiter) tries to access it, they will be blocked by blockRecruiters.
-router.post('/apply', upload.single('resume'), authMiddleware, blockRecruiters, ApplicationsController.applyWithoutLogin);
+// router.post('/apply', upload.single('resume'), authMiddleware, blockRecruiters, ApplicationsController.applyWithoutLogin);
+router.post('/apply', upload.single('resume'), blockRecruiters, ApplicationsController.applyWithoutLogin);
 
 // Recruiter-only routes
 router.get('/job/:jobId', authMiddleware, authorizeRoles(['recruiter', 'admin']), ApplicationsController.getApplicationsForJob);
