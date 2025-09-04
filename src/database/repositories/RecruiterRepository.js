@@ -50,6 +50,34 @@ class RecruiterRepository {
         }
     }
 
+    /**
+     * Finds a recruiter's profile along with their company name and website.
+     * @param {string} userId - The ID of the recruiter user.
+     * @returns {Promise<object|null>} Recruiter profile object with company name and website.
+     */
+    static async findProfileWithCompany(userId) {
+        try {
+            const { rows } = await query(
+                `SELECT
+                    r.user_id,
+                    r.full_name as recruiter_name,
+                    c.id as company_id,
+                    c.name as company_name,
+                    c.website as company_website
+                FROM
+                    recruiters r
+                JOIN
+                    companies c ON r.company_id = c.id
+                WHERE
+                    r.user_id = $1`,
+                [userId]
+            );
+            return rows[0] || null;
+        } catch (error) {
+            console.error('Error fetching recruiter profile with company details:', error);
+            throw new Error('Could not retrieve recruiter profile.');
+        }
+    }
     // Add other methods like update, delete, etc. as needed
 }
 

@@ -6,7 +6,8 @@ const authRoutes = require("./api/routes/auth.routes")
 const jobsRoutes = require("./api/routes/jobs.routes")
 const applicationsRoutes = require("./api/routes/applications.routes")
 const savedJobsRoutes = require("./api/routes/savedJobs.routes")
-const candidateRoutes = require('./api/routes/candidate.Routes'); // Correctly import the candidate routes
+const candidateRoutes = require('./api/routes/candidate.Routes');
+const recruiterRoutes = require('./api/routes/recruiter.routes'); 
 
 const app = express()
 
@@ -31,7 +32,8 @@ app.use("/api/auth", authRoutes)
 app.use("/api/jobs", jobsRoutes)
 app.use("/api/applications", applicationsRoutes)
 app.use("/api/saved-jobs", savedJobsRoutes)
-app.use("/api/candidate", candidateRoutes) // Correctly mount the candidate routes
+app.use("/api/candidate", candidateRoutes)
+app.use("/api/recruiter", recruiterRoutes) 
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Backend is running!" })
